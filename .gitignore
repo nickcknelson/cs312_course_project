@@ -1,0 +1,35 @@
+# Ignore Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Crash logs
+crash.log
+
+# Exclude Terraform's provider plugins and modules
+.terraform/
+
+# Terraform variable overrides
+*.tfvars
+*.tfvars.json
+
+# Ignore plan output
+*.tfplan
+
+# Exclude sensitive data or config
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore editor/IDE-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Ignore logs
+*.log
