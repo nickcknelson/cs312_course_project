@@ -1,0 +1,76 @@
+---
+- name: Setup Minecraft Server
+  hosts: minecraft
+  become: yes
+
+  vars:
+    mc_user: minecraft
+    mc_dir: /opt/minecraft
+    mc_service: minecraft
+    mc_jar_url: https://launcher.mojang.com/v1/objects/0f279d5a9e449651d41b93e5b2d68fe5d081f7b9/server.jar
+    mc_jar: server.jar
+
+  tasks:
+    - name: Install Java
+      yum:
+        name: java-1.8.0-openjdk
+        state: present
+
+    - name: Create Minecraft user
+      user:
+        name: "{{ mc_user }}"
+        shell: /bin/bash
+        create_home: no
+
+    - name: Create Minecraft directory
+      file:
+        path: "{{ mc_dir }}"
+        state: directory
+        owner: "{{ mc_user }}"
+        group: "{{ mc_user }}"
+        mode: "0755"
+
+    - name: Download Minecraft server jar
+      get_url:
+        url: "{{ mc_jar_url }}"
+        dest: "{{ mc_dir }}/{{ mc_jar }}"
+        mode: "0755"
+        owner: "{{ mc_user }}"
+        group: "{{ mc_user }}"
+
+    - name: Accept EULA
+      copy:
+        dest: "{{ mc_dir }}/eula.txt"
+        content: "eula=true\n"
+        owner: "{{ mc_user }}"
+        group: "{{ mc_user }}"
+        mode: "0644"
+
+    - name: Create systemd service for Minecraft
+      copy:
+        dest: /etc/systemd/system/{{ mc_service }}.service
+        content: |
+          [Unit]
+          Description=Minecraft Server
+          After=network.target
+
+          [Service]
+          User={{ mc_user }}
+          WorkingDirectory={{ mc_dir }}
+          ExecStart=/usr/bin/java -Xmx1024M -Xms1024M -jar {{ mc_jar }} nogui
+          ExecStop=/bin/kill -s TERM $MAINPID
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: "0644"
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start Minecraft service
+      systemd:
+        name: "{{ mc_service }}"
+        enabled: yes
+        state: started
