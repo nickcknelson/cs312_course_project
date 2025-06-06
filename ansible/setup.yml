@@ -3,74 +3,88 @@
   hosts: minecraft
   become: yes
 
-  vars:
-    mc_user: minecraft
-    mc_dir: /opt/minecraft
-    mc_service: minecraft
-    mc_jar_url: https://launcher.mojang.com/v1/objects/0f279d5a9e449651d41b93e5b2d68fe5d081f7b9/server.jar
-    mc_jar: server.jar
-
   tasks:
-    - name: Install Java
-      yum:
-        name: java-1.8.0-openjdk
+    - name: Update apt
+      apt:
+        update_cache: yes
+
+    - name: Add OpenJDK PPA
+      apt_repository:
+        repo: ppa:openjdk-r/ppa
         state: present
 
-    - name: Create Minecraft user
-      user:
-        name: "{{ mc_user }}"
-        shell: /bin/bash
-        create_home: no
-
-    - name: Create Minecraft directory
-      file:
-        path: "{{ mc_dir }}"
-        state: directory
-        owner: "{{ mc_user }}"
-        group: "{{ mc_user }}"
-        mode: "0755"
-
-    - name: Download Minecraft server jar
+    - name: Download OpenJDK 21 from Adoptium
       get_url:
-        url: "{{ mc_jar_url }}"
-        dest: "{{ mc_dir }}/{{ mc_jar }}"
-        mode: "0755"
-        owner: "{{ mc_user }}"
-        group: "{{ mc_user }}"
+        url: https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.1+12/OpenJDK21U-jdk_x64_linux_hotspot_21.0.1_12.tar.gz
+        dest: /tmp/openjdk-21.tar.gz
 
-    - name: Accept EULA
+    - name: Extract OpenJDK 21
+      unarchive:
+        src: /tmp/openjdk-21.tar.gz
+        dest: /opt/
+        remote_src: yes
+
+    - name: Set JAVA_HOME and add to PATH
       copy:
-        dest: "{{ mc_dir }}/eula.txt"
-        content: "eula=true\n"
-        owner: "{{ mc_user }}"
-        group: "{{ mc_user }}"
+        dest: /etc/profile.d/jdk21.sh
+        content: |
+          export JAVA_HOME=/opt/jdk-21.0.1+12
+          export PATH=$JAVA_HOME/bin:$PATH
+        mode: "0755"
+
+    - name: Create minecraft directory
+      file:
+        path: /home/ubuntu/minecraft
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+
+    - name: Copy server.jar to instance
+      copy:
+        src: files/server.jar
+        dest: /home/ubuntu/minecraft/server.jar
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+
+    - name: Accept Minecraft EULA
+      copy:
+        src: files/eula.txt
+        dest: /home/ubuntu/minecraft/eula.txt
+        owner: ubuntu
+        group: ubuntu
         mode: "0644"
 
-    - name: Create systemd service for Minecraft
+    - name: Create systemd service
       copy:
-        dest: /etc/systemd/system/{{ mc_service }}.service
+        dest: /etc/systemd/system/minecraft.service
         content: |
           [Unit]
           Description=Minecraft Server
           After=network.target
 
           [Service]
-          User={{ mc_user }}
-          WorkingDirectory={{ mc_dir }}
-          ExecStart=/usr/bin/java -Xmx1024M -Xms1024M -jar {{ mc_jar }} nogui
-          ExecStop=/bin/kill -s TERM $MAINPID
-          Restart=on-failure
+          User=ubuntu
+          WorkingDirectory=/home/ubuntu/minecraft
+          ExecStart=/opt/jdk-21.0.1+12/bin/java -Xmx2G -Xms1G -jar server.jar nogui
+          ExecStop=/bin/kill -SIGINT $MAINPID
+          Restart=always
+          KillMode=none
+          SuccessExitStatus=0 1
 
           [Install]
           WantedBy=multi-user.target
-        mode: "0644"
+      notify:
+        - Reload systemd
+        - Enable and start Minecraft
 
-    - name: Reload systemd daemon
-      systemd:
-        daemon_reload: yes
+  handlers:
+    - name: Reload systemd
+      command: systemctl daemon-reload
 
-    - name: Enable and start Minecraft service
+    - name: Enable and start Minecraft
       systemd:
-        name: "{{ mc_service }}"
+        name: minecraft
         enabled: yes
         state: started

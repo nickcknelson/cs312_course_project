@@ -8,9 +8,6 @@ crash.log
 # Exclude Terraform's provider plugins and modules
 .terraform/
 
-# Terraform variable overrides
-*.tfvars
-*.tfvars.json
 
 # Ignore plan output
 *.tfplan
@@ -33,3 +30,6 @@ Thumbs.db
 
 # Ignore logs
 *.log
+
+my-minecraft-key
+my-minecraft-key.pub
