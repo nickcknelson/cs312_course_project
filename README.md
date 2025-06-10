@@ -16,7 +16,7 @@ In this project, we automatically provision and configure a Minecraft server on 
 
 ### 🔐 AWS Configuration
 
-Configure the AWS CLI on your local machine (no need for hardcoded secrets):
+Configure the AWS CLI on your local machine:
 
 ```bash
 aws configure set <variable> "<value>"
@@ -85,20 +85,7 @@ CS312_COURSE_PROJECT/
 
 ## 📈 Pipeline Diagram
 
-```text
-+----------------+       +---------------------------+
-| Local Machine  |  -->  | Terraform                 |
-| (Terraform +   |       | - Provisions EC2          |
-|  Ansible)      |       | - Creates key + SG        |
-+----------------+       +---------------------------+
-                                  |
-                                  v
-                        +---------------------------+
-                        | AWS EC2 Instance (Ubuntu) |
-                        | - Configured by Ansible   |
-                        | - Minecraft Server runs   |
-                        +---------------------------+
-```
+![Minecraft Server Pipeline Diagram](images/diagram.png)
 
 ---
 
@@ -116,10 +103,24 @@ terraform apply
 ```
 
 This provisions an EC2 instance, SSH key, and security group with open ports `22` and `25565`.
+This also provide the server IP to the server at the end of the apply.
+
+```bash
+terraform output
+```
+
+This will give you the server IP again
 
 ### 2. Configure the Server with Ansible
 
 From the `ansible/` directory:
+
+```text
+[minecraft]
+<instance_public_ip> ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/my-minecraft-key
+```
+
+Make sure to paste the server IP you got from terraform to the `inventory` file
 
 ```bash
 ansible-playbook -i inventory setup.yml
@@ -138,6 +139,11 @@ This:
 ## 🔌 Connecting to the Minecraft Server
 
 Once deployed, use your Minecraft client and connect to the server's **public IP address** on port `25565`.
+Or use:
+
+```bash
+nmap -sV -Pn -p T:25565 <instance_public_ip>
+```
 
 To find the IP:
 
@@ -179,7 +185,7 @@ sudo systemctl status minecraft
 
 ---
 
-## 🪩 Clean Up
+## Clean Up
 
 To avoid AWS charges:
 

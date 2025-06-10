@@ -1,2 +1,2 @@
 [minecraft]
-54.70.168.14 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/my-minecraft-key
+44.244.116.96 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/my-minecraft-key
