@@ -161,40 +161,6 @@ ssh -i terraform/my-minecraft-key ubuntu@<public-ip>
 
 ---
 
-## 🔁 Auto-Restart on Reboot
-
-The Minecraft server is set up as a `systemd` service with:
-
-```ini
-[Service]
-Restart=always
-```
-
-This ensures:
-
-- It **auto-starts** on reboot
-- It **restarts** on failure
-
-You can verify this by running:
-
-```bash
-sudo reboot
-# Then after reconnecting:
-sudo systemctl status minecraft
-```
-
----
-
-## Clean Up
-
-To avoid AWS charges:
-
-```bash
-terraform destroy
-```
-
----
-
 ## 📚 References
 
 - [Adoptium Java 21](https://adoptium.net/en-GB/temurin/releases/?version=21)
